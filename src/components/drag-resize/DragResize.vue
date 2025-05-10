@@ -18,6 +18,7 @@ defineOptions({
 
 const props = withDefaults(defineProps<DragResizeProps>(), {
   stickSize: 8,
+  showStick: true,
   parentScaleX: 1,
   parentScaleY: 1,
   isActive: false,
@@ -82,7 +83,7 @@ const limits = ref<Record<string, { min: number | null; max: number | null }>>({
   top: { min: null, max: null },
   bottom: { min: null, max: null },
 });
-const currentStick = ref<Sticks>('bl');
+const currentStick = ref<Sticks>("bl");
 const aspectFactor = ref(0);
 const parentElement = ref<HTMLElement>();
 const left = ref(props?.x);
@@ -206,6 +207,13 @@ function drStick(stick: Sticks) {
     props.stickSize / props.parentScaleX / -2
   }px`;
   return stickStyle;
+}
+
+function stickSizeStyle() {
+  return {
+    width: `${props.stickSize / props.parentScaleX}px`,
+    height: `${props.stickSize / props.parentScaleY}px`,
+  };
 }
 
 function move(ev: TouchEvent & DragEvent) {
@@ -387,7 +395,10 @@ function rectCorrectionByLimit(rect: Record<string, number>) {
   };
 }
 
-function sideCorrectionByLimit(limit: { min: number | null; max: number | null; }, current: number) {
+function sideCorrectionByLimit(
+  limit: { min: number | null; max: number | null },
+  current: number
+) {
   let value = current;
 
   if (limit.min !== null && current < limit.min) {
@@ -436,7 +447,7 @@ function rectCorrectionByAspectRatio(rect: Record<string, number>) {
   return { newLeft, newRight, newTop, newBottom };
 }
 
-function bodyMove(delta: { x: number; y: number; }) {
+function bodyMove(delta: { x: number; y: number }) {
   let newTop = dimensionsBeforeMove.value.top - delta.y;
   let newBottom = dimensionsBeforeMove.value.bottom + delta.y;
   let newLeft = dimensionsBeforeMove.value.left - delta.x;
@@ -494,7 +505,7 @@ function bodyMove(delta: { x: number; y: number; }) {
   emits("dragging", rect.value);
 }
 
-function bodyDown(ev: MouseEvent | { pageX: number; pageY: number; }) {
+function bodyDown(ev: MouseEvent | { pageX: number; pageY: number }) {
   const { target, button } = ev as MouseEvent;
 
   if (!props?.preventActiveBehavior) {
@@ -513,14 +524,16 @@ function bodyDown(ev: MouseEvent | { pageX: number; pageY: number; }) {
 
   if (
     props?.dragHandle &&
-    (target as HTMLElement)?.getAttribute("data-drag-handle") !== instance?.uid.toString()
+    (target as HTMLElement)?.getAttribute("data-drag-handle") !==
+      instance?.uid.toString()
   ) {
     return;
   }
 
   if (
     props.dragCancel &&
-    (target as HTMLElement)?.getAttribute("data-drag-cancel") === instance?.uid.toString()
+    (target as HTMLElement)?.getAttribute("data-drag-cancel") ===
+      instance?.uid.toString()
   ) {
     return;
   }
@@ -538,9 +551,13 @@ function bodyDown(ev: MouseEvent | { pageX: number; pageY: number; }) {
   }
 
   const pointerX =
-    typeof ev.pageX !== "undefined" ? ev.pageX : (ev as unknown as TouchEvent).touches[0].pageX;
+    typeof ev.pageX !== "undefined"
+      ? ev.pageX
+      : (ev as unknown as TouchEvent).touches[0].pageX;
   const pointerY =
-    typeof ev.pageY !== "undefined" ? ev.pageY : (ev as unknown as TouchEvent).touches[0].pageY;
+    typeof ev.pageY !== "undefined"
+      ? ev.pageY
+      : (ev as unknown as TouchEvent).touches[0].pageY;
 
   saveDimensionsBeforeMove({ pointerX, pointerY });
 
@@ -549,7 +566,13 @@ function bodyDown(ev: MouseEvent | { pageX: number; pageY: number; }) {
   }
 }
 
-function saveDimensionsBeforeMove({ pointerX, pointerY }: { pointerX: number; pointerY: number; }) {
+function saveDimensionsBeforeMove({
+  pointerX,
+  pointerY,
+}: {
+  pointerX: number;
+  pointerY: number;
+}) {
   dimensionsBeforeMove.value.pointerX = pointerX;
   dimensionsBeforeMove.value.pointerY = pointerY;
 
@@ -572,9 +595,13 @@ function stickDown(stick: Sticks, ev: MouseEvent, force = false) {
   stickDrag.value = true;
 
   const pointerX =
-    typeof ev.pageX !== "undefined" ? ev.pageX : (ev as unknown as TouchEvent).touches[0].pageX;
+    typeof ev.pageX !== "undefined"
+      ? ev.pageX
+      : (ev as unknown as TouchEvent).touches[0].pageX;
   const pointerY =
-    typeof ev.pageY !== "undefined" ? ev.pageY : (ev as unknown as TouchEvent).touches[0].pageY;
+    typeof ev.pageY !== "undefined"
+      ? ev.pageY
+      : (ev as unknown as TouchEvent).touches[0].pageY;
 
   saveDimensionsBeforeMove({ pointerX, pointerY });
 
@@ -789,7 +816,10 @@ watch(
 
     stickDown(
       stick,
-      { pageX: left.value + width.value / 2, pageY: bottom.value } as MouseEvent,
+      {
+        pageX: left.value + width.value / 2,
+        pageY: bottom.value,
+      } as MouseEvent,
       true
     );
     stickMove({ x: 0, y: delta });
@@ -831,18 +861,31 @@ watch(
     <div :style="sizeStyle" class="content-container" ref="container">
       <slot></slot>
     </div>
-    <div
-      v-for="(stick, i) in sticks"
-      :key="i"
-      class="drag-resize-stick"
-      :class="[
-        'drag-resize-stick-' + stick,
-        isResizable ? '' : 'not-resizable',
-      ]"
-      @mousedown.stop.prevent="stickDown(stick, $event)"
-      @touchstart.stop.prevent="stickDown(stick, $event as unknown as MouseEvent)"
-      :style="drStick(stick)"
-    ></div>
+    <template v-if="showStick !== false">
+      <template v-for="(stick, i) in sticks" :key="i">
+        <div
+          class="drag-resize-stick"
+          :class="[
+            'drag-resize-stick-' + stick,
+            isResizable ? '' : 'not-resizable',
+          ]"
+          @mousedown.stop.prevent="stickDown(stick, $event)"
+          @touchstart.stop.prevent="
+            stickDown(stick, $event as unknown as MouseEvent)
+          "
+          :style="drStick(stick)"
+        >
+          <div class="drag-resize-stick-wrapper">
+            <slot name="stick" :position="stick" :style="drStick(stick)">
+              <div
+                class="drag-resize-stick-inner"
+                :style="stickSizeStyle()"
+              ></div>
+            </slot>
+          </div>
+        </div>
+      </template>
+    </template>
   </div>
 </template>
 
@@ -851,6 +894,7 @@ watch(
   position: absolute;
   box-sizing: border-box;
 }
+
 .drag-resize.active:before {
   content: "";
   width: 100%;
@@ -861,38 +905,65 @@ watch(
   box-sizing: border-box;
   outline: 1px dashed #d6d6d6;
 }
+
 .drag-resize-stick {
   box-sizing: border-box;
   position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.drag-resize-stick-wrapper {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.drag-resize-stick-inner {
+  width: 100%;
+  height: 100%;
   font-size: 1px;
   background: #ffffff;
   border: 1px solid #6c6c6c;
   box-shadow: 0 0 2px #bbb;
 }
+
 .inactive .drag-resize-stick {
   display: none;
 }
+
 .drag-resize-stick-tl,
 .drag-resize-stick-br {
   cursor: nwse-resize;
 }
+
 .drag-resize-stick-tm,
 .drag-resize-stick-bm {
   left: 50%;
   cursor: ns-resize;
 }
+
 .drag-resize-stick-tr,
 .drag-resize-stick-bl {
   cursor: nesw-resize;
 }
+
 .drag-resize-stick-ml,
 .drag-resize-stick-mr {
   top: 50%;
   cursor: ew-resize;
 }
+
 .drag-resize-stick.not-resizable {
   display: none;
 }
+
 .content-container {
   display: block;
   position: relative;

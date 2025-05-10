@@ -113,6 +113,12 @@ onMounted(() => {
       :contentClass="rect.class"
     >
       <div class="filler" :style="{ backgroundColor: rect.color }"></div>
+
+      <template #stick="{ position }">
+        <div class="stick">
+          {{ position }}
+        </div>
+      </template>
     </DragResize>
   </div>
 </template>
@@ -126,6 +132,12 @@ onMounted(() => {
     width: 100%;
     height: 100%;
     cursor: move;
+  }
+
+  .stick {
+    width: 30px;
+    height: 30px;
+    background-color: aqua;
   }
 }
 </style>
