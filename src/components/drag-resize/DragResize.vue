@@ -9,7 +9,7 @@ import {
   watch,
   type StyleValue,
 } from "vue";
-import { type DragResizeProps } from "./props";
+import { type DragResizeProps, type Sticks } from "./props";
 import { styleMapping } from "./constants";
 
 defineOptions({
@@ -62,7 +62,7 @@ const parentWidth = ref<number>(0);
 const parentHeight = ref<number>(0);
 const stickDrag = ref(false);
 const bodyDrag = ref(false);
-const dimensionsBeforeMove = ref({
+const dimensionsBeforeMove = ref<Record<string, number>>({
   pointerX: 0,
   pointerY: 0,
   x: 0,
@@ -76,13 +76,13 @@ const dimensionsBeforeMove = ref({
   height: 0,
   width: 0,
 });
-const limits = ref({
+const limits = ref<Record<string, { min: number | null; max: number | null }>>({
   left: { min: null, max: null },
   right: { min: null, max: null },
   top: { min: null, max: null },
   bottom: { min: null, max: null },
 });
-const currentStick = ref<string>("");
+const currentStick = ref<Sticks>('bl');
 const aspectFactor = ref(0);
 const parentElement = ref<HTMLElement>();
 const left = ref(props?.x);
@@ -141,13 +141,13 @@ const sizeStyle = computed(() => {
 });
 
 onMounted(() => {
-  const parentElement = instance?.parent?.proxy?.$el! as HTMLElement;
+  parentElement.value = instance?.parent?.proxy?.$el! as HTMLElement;
   parentWidth.value = props?.parentW
     ? props?.parentW
-    : parentElement?.clientWidth;
+    : parentElement.value?.clientWidth;
   parentHeight.value = props?.parentH
     ? props?.parentH
-    : parentElement?.clientHeight;
+    : parentElement.value?.clientHeight;
 
   left.value = props?.x;
   top.value = props?.y;
@@ -164,7 +164,7 @@ onMounted(() => {
       : Number(props?.h)) -
     top.value;
 
-  addEvents(domEvents.value);
+  addEvents(domEvents.value as Map<string, EventListener>);
 
   if (props?.dragHandle) {
     [...instance?.proxy?.$el.querySelectorAll(props?.dragHandle)].forEach(
@@ -184,7 +184,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  removeEvents(domEvents.value);
+  removeEvents(domEvents.value as Map<string, EventListener>);
 });
 
 function deselect() {
@@ -194,8 +194,8 @@ function deselect() {
   active.value = false;
 }
 
-function drStick(stick: any) {
-  const stickStyle = {
+function drStick(stick: Sticks) {
+  const stickStyle: Record<string, string> = {
     width: `${props.stickSize / props.parentScaleX}px`,
     height: `${props.stickSize / props.parentScaleY}px`,
   };
@@ -292,7 +292,7 @@ function stickUp() {
   emits("resizestop", rect.value);
 }
 
-function stickMove(delta) {
+function stickMove(delta: { x: number; y: number }) {
   let newTop = dimensionsBeforeMove.value.top;
   let newBottom = dimensionsBeforeMove.value.bottom;
   let newLeft = dimensionsBeforeMove.value.left;
@@ -371,7 +371,7 @@ function stickMove(delta) {
   emits("resizing", rect);
 }
 
-function rectCorrectionByLimit(rect) {
+function rectCorrectionByLimit(rect: Record<string, number>) {
   let { newRight, newLeft, newBottom, newTop } = rect;
 
   newLeft = sideCorrectionByLimit(limits.value.left, newLeft);
@@ -387,7 +387,7 @@ function rectCorrectionByLimit(rect) {
   };
 }
 
-function sideCorrectionByLimit(limit, current) {
+function sideCorrectionByLimit(limit: { min: number | null; max: number | null; }, current: number) {
   let value = current;
 
   if (limit.min !== null && current < limit.min) {
@@ -399,7 +399,7 @@ function sideCorrectionByLimit(limit, current) {
   return value;
 }
 
-function rectCorrectionByAspectRatio(rect) {
+function rectCorrectionByAspectRatio(rect: Record<string, number>) {
   let { newLeft, newRight, newTop, newBottom } = rect;
 
   let newWidth = parentWidth.value - newLeft - newRight;
@@ -436,7 +436,7 @@ function rectCorrectionByAspectRatio(rect) {
   return { newLeft, newRight, newTop, newBottom };
 }
 
-function bodyMove(delta) {
+function bodyMove(delta: { x: number; y: number; }) {
   let newTop = dimensionsBeforeMove.value.top - delta.y;
   let newBottom = dimensionsBeforeMove.value.bottom + delta.y;
   let newLeft = dimensionsBeforeMove.value.left - delta.x;
@@ -494,8 +494,8 @@ function bodyMove(delta) {
   emits("dragging", rect.value);
 }
 
-function bodyDown(ev) {
-  const { target, button } = ev;
+function bodyDown(ev: MouseEvent | { pageX: number; pageY: number; }) {
+  const { target, button } = ev as MouseEvent;
 
   if (!props?.preventActiveBehavior) {
     active.value = true;
@@ -513,24 +513,24 @@ function bodyDown(ev) {
 
   if (
     props?.dragHandle &&
-    target.getAttribute("data-drag-handle") !== instance?.uid.toString()
+    (target as HTMLElement)?.getAttribute("data-drag-handle") !== instance?.uid.toString()
   ) {
     return;
   }
 
   if (
     props.dragCancel &&
-    target.getAttribute("data-drag-cancel") === instance?.uid.toString()
+    (target as HTMLElement)?.getAttribute("data-drag-cancel") === instance?.uid.toString()
   ) {
     return;
   }
 
-  if (typeof ev.stopPropagation !== "undefined") {
-    ev.stopPropagation();
+  if (typeof (ev as MouseEvent).stopPropagation !== "undefined") {
+    (ev as MouseEvent).stopPropagation();
   }
 
-  if (typeof ev.preventDefault !== "undefined") {
-    ev.preventDefault();
+  if (typeof (ev as MouseEvent).preventDefault !== "undefined") {
+    (ev as MouseEvent).preventDefault();
   }
 
   if (props.isDraggable) {
@@ -538,9 +538,9 @@ function bodyDown(ev) {
   }
 
   const pointerX =
-    typeof ev.pageX !== "undefined" ? ev.pageX : ev.touches[0].pageX;
+    typeof ev.pageX !== "undefined" ? ev.pageX : (ev as unknown as TouchEvent).touches[0].pageX;
   const pointerY =
-    typeof ev.pageY !== "undefined" ? ev.pageY : ev.touches[0].pageY;
+    typeof ev.pageY !== "undefined" ? ev.pageY : (ev as unknown as TouchEvent).touches[0].pageY;
 
   saveDimensionsBeforeMove({ pointerX, pointerY });
 
@@ -549,7 +549,7 @@ function bodyDown(ev) {
   }
 }
 
-function saveDimensionsBeforeMove({ pointerX, pointerY }) {
+function saveDimensionsBeforeMove({ pointerX, pointerY }: { pointerX: number; pointerY: number; }) {
   dimensionsBeforeMove.value.pointerX = pointerX;
   dimensionsBeforeMove.value.pointerY = pointerY;
 
@@ -564,7 +564,7 @@ function saveDimensionsBeforeMove({ pointerX, pointerY }) {
   aspectFactor.value = width.value / height.value;
 }
 
-function stickDown(stick, ev, force = false) {
+function stickDown(stick: Sticks, ev: MouseEvent, force = false) {
   if ((!props?.isResizable || !active.value) && !force) {
     return;
   }
@@ -572,9 +572,9 @@ function stickDown(stick, ev, force = false) {
   stickDrag.value = true;
 
   const pointerX =
-    typeof ev.pageX !== "undefined" ? ev.pageX : ev.touches[0].pageX;
+    typeof ev.pageX !== "undefined" ? ev.pageX : (ev as unknown as TouchEvent).touches[0].pageX;
   const pointerY =
-    typeof ev.pageY !== "undefined" ? ev.pageY : ev.touches[0].pageY;
+    typeof ev.pageY !== "undefined" ? ev.pageY : (ev as unknown as TouchEvent).touches[0].pageY;
 
   saveDimensionsBeforeMove({ pointerX, pointerY });
 
@@ -676,13 +676,13 @@ function calcDragLimitation() {
   };
 }
 
-function addEvents(events) {
+function addEvents(events: Map<string, EventListener>) {
   events.forEach((cb, eventName) => {
     document.documentElement.addEventListener(eventName, cb);
   });
 }
 
-function removeEvents(events) {
+function removeEvents(events: Map<string, EventListener>) {
   events.forEach((cb, eventName) => {
     document.documentElement.removeEventListener(eventName, cb);
   });
@@ -766,7 +766,7 @@ watch(
 
     stickDown(
       stick,
-      { pageX: right.value, pageY: top.value + height.value / 2 },
+      { pageX: right.value, pageY: top.value + height.value / 2 } as MouseEvent,
       true
     );
     stickMove({ x: delta, y: 0 });
@@ -789,7 +789,7 @@ watch(
 
     stickDown(
       stick,
-      { pageX: left.value + width.value / 2, pageY: bottom.value },
+      { pageX: left.value + width.value / 2, pageY: bottom.value } as MouseEvent,
       true
     );
     stickMove({ x: 0, y: delta });
@@ -825,7 +825,7 @@ watch(
       contentClass ? contentClass : ''
     }`"
     @mousedown="bodyDown($event)"
-    @touchstart="bodyDown($event)"
+    @touchstart="bodyDown($event as unknown as MouseEvent)"
     @touchend="up()"
   >
     <div :style="sizeStyle" class="content-container" ref="container">
@@ -840,7 +840,7 @@ watch(
         isResizable ? '' : 'not-resizable',
       ]"
       @mousedown.stop.prevent="stickDown(stick, $event)"
-      @touchstart.stop.prevent="stickDown(stick, $event)"
+      @touchstart.stop.prevent="stickDown(stick, $event as unknown as MouseEvent)"
       :style="drStick(stick)"
     ></div>
   </div>

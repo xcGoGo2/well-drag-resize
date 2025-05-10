@@ -1,4 +1,4 @@
-export const styleMapping = {
+export const styleMapping: { [p: string]: { [p: string]: string } } = {
   y: {
     t: "top",
     m: "marginTop",

@@ -1,76 +1,76 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { DragResize } from "./components";
+import { DragResize, type DragResizeProps } from "./components";
 
-const rects = [
+const rects: (DragResizeProps & { color: string; class?: string })[] = [
   {
-    width: 200,
-    height: 150,
-    top: 10,
-    left: 10,
-    draggable: true,
-    resizable: true,
+    w: 200,
+    h: 150,
+    y: 10,
+    x: 10,
+    isDraggable: true,
+    isResizable: true,
     minw: 10,
     minh: 10,
     axis: "both",
-    parentLim: true,
+    parentLimitation: true,
     snapToGrid: false,
     aspectRatio: false,
-    zIndex: 1,
+    z: 1,
     color: "#EF9A9A",
-    active: false,
+    isActive: false,
   },
   {
-    width: 200,
-    height: 150,
-    top: 170,
-    left: 220,
-    draggable: true,
-    resizable: true,
+    w: 200,
+    h: 150,
+    y: 170,
+    x: 220,
+    isDraggable: true,
+    isResizable: true,
     minw: 10,
     minh: 10,
     axis: "both",
-    parentLim: true,
+    parentLimitation: true,
     snapToGrid: false,
     aspectRatio: false,
-    zIndex: 1,
+    z: 1,
     color: "#E6C27A",
-    active: false,
+    isActive: false,
     class: "box-shaddow",
   },
   {
-    width: 200,
-    height: 150,
-    top: 10,
-    left: 220,
-    draggable: true,
-    resizable: true,
+    w: 200,
+    h: 150,
+    y: 10,
+    x: 220,
+    isDraggable: true,
+    isResizable: true,
     minw: 10,
     minh: 10,
     axis: "both",
-    parentLim: true,
+    parentLimitation: true,
     snapToGrid: false,
     aspectRatio: false,
-    zIndex: 2,
+    z: 1,
     color: "#AED581",
-    active: false,
+    isActive: false,
   },
   {
-    width: 200,
-    height: 150,
-    top: 170,
-    left: 10,
-    draggable: true,
-    resizable: true,
+    w: 200,
+    h: 150,
+    y: 170,
+    x: 10,
+    isDraggable: true,
+    isResizable: true,
     minw: 10,
     minh: 10,
     axis: "both",
-    parentLim: true,
+    parentLimitation: true,
     snapToGrid: false,
     aspectRatio: false,
-    zIndex: 3,
+    z: 1,
     color: "#81D4FA",
-    active: false,
+    isActive: false,
   },
 ];
 
@@ -94,22 +94,22 @@ onMounted(() => {
     <DragResize
       v-for="(rect, index) in rects"
       :key="index"
-      :w="rect.width"
-      :h="rect.height"
-      :x="rect.left"
-      :y="rect.top"
+      :w="rect.w"
+      :h="rect.h"
+      :x="rect.x"
+      :y="rect.y"
       :parentW="listWidth"
       :parentH="listHeight"
       :axis="rect.axis"
-      :isActive="rect.active"
+      :isActive="rect.isActive"
       :minw="rect.minw"
       :minh="rect.minh"
-      :isDraggable="rect.draggable"
-      :isResizable="rect.resizable"
-      :parentLimitation="rect.parentLim"
+      :isDraggable="rect.isDraggable"
+      :isResizable="rect.isResizable"
+      :parentLimitation="rect.parentLimitation"
       :snapToGrid="rect.snapToGrid"
       :aspectRatio="rect.aspectRatio"
-      :z="rect.zIndex"
+      :z="rect.z"
       :contentClass="rect.class"
     >
       <div class="filler" :style="{ backgroundColor: rect.color }"></div>
